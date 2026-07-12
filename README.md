@@ -1,5 +1,7 @@
 # Chronicle 📜
 
+> Part of the **[Nota.Lawyer CockroachDB E-Discovery Suite](https://github.com/banksythequantLab/ediscovery-suite)** — five agents, one entwined memory.
+
 **A living theory of the case.** As discovery documents stream in, Chronicle
 builds and *continuously revises* a case chronology and legal theory —
 extracting events, actors, and dates, resolving contradictions, and persisting
