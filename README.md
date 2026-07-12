@@ -66,9 +66,21 @@ with **CockroachDB memory on**, persisted evidence anchors it — converges to
 
 ## Status
 
-Scaffolding in progress. Schema and the deterministic memory core
-(conflict detection + persisted resolution + ablation harness) first; LLM-based
-event extraction layered on top.
+Built & verified: schema, the deterministic memory core (conflict detection +
+persisted resolution + convergence ablation 0.98 vs 0.42), and a live working
+timeline (17 documented events) that feeds the suite's unified case file.
+
+The **LLM event-extraction layer** (`src/extract_events.py`) is built and its
+parsing / boilerplate-filtering / actor-backfill logic is verified offline
+(`--run` reads real SEC/email chunks and calls local Qwen3-30B to grow the
+timeline). Its live run is **staged pending GPU** — the project's Qwen host was
+saturated at build time (a 4-token generation timed out at 48s), so per our
+no-fake-results rule the extractor ships verified but un-run:
+
+```
+py -3.11 src/extract_events.py --selftest        # logic check (no model) — PASS
+py -3.11 src/extract_events.py --run --limit 40  # real extraction (needs the GPU free)
+```
 
 
 ---
