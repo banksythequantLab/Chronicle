@@ -67,3 +67,30 @@ with **CockroachDB memory on**, persisted evidence anchors it — converges to
 Scaffolding in progress. Schema and the deterministic memory core
 (conflict detection + persisted resolution + ablation harness) first; LLM-based
 event extraction layered on top.
+
+
+---
+
+## The Nota.Lawyer suite — five agents, one CockroachDB memory
+
+Chronicle is the visual thesis for a five-agent e-discovery suite that all
+share one CockroachDB-backed memory. Every agent ships with an **objective
+memory ablation** — the same experiment run with persistent memory on and off —
+proving that persistence doesn't just make the agent faster, it changes the
+**outcome**.
+
+![five memory ablations](docs/suite_ablations.png)
+
+| Agent | Job | Memory ablation (on vs off) | Repo |
+|---|---|---|---|
+| **Cold Case** | Investigate fraud, name the POIs blind | 4/18 POIs found vs 0; 100% vs 0% precision | [ColdCase](https://github.com/banksythequantLab/ColdCase) |
+| **Chronicle** | Maintain the living theory of the case | converges to truth 0.98 vs oscillates to 0.42 | [Chronicle](https://github.com/banksythequantLab/Chronicle) |
+| **Witness** | Build the impeachment file | 12/12 contradictions vs 3/12 | [Witness](https://github.com/banksythequantLab/Witness) |
+| **Gap Hunter** | Find what's *missing* | 6/6 gaps @100% precision vs 37% | [GapHunter](https://github.com/banksythequantLab/GapHunter) |
+| **Hold Firewall** | Guard against spoliation (ACID) | 0 held docs destroyed vs ~119 | [HoldFirewall](https://github.com/banksythequantLab/HoldFirewall) |
+
+One memory backbone — vectors (C-SPANN), a communication/evidence graph, and
+SERIALIZABLE transactional state — supports every agent. That is the argument
+for CockroachDB over a bolt-on vector store: the memory *is* the product.
+
+Regenerate the panel: `py -3.11 src/make_montage.py`
