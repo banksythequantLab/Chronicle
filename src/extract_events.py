@@ -31,12 +31,26 @@ investigations, indictments, pleas. IGNORE boilerplate (bios, routine
 compensation tables, addresses, generic policy language).
 
 Return STRICT JSON: {"events":[{"date":"YYYY-MM-DD","event":"<=120 chars","actors":["Surname"]}]}
-Use null for date only if a clear month+year is present but no day. Omit events with no date.
+Give the most precise date the text supports: use YYYY-MM-DD, or YYYY-MM, or just YYYY.
+Omit an event only if the text gives no year at all.
 
 DOCUMENT:
 \"\"\"%s\"\"\"
 """
 
+
+def _norm_date(d):
+    """Accept YYYY-MM-DD, YYYY-MM, or YYYY; normalize to a full date."""
+    if not d:
+        return None
+    d = str(d).strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", d):
+        return d
+    if re.match(r"^\d{4}-\d{2}$", d):
+        return d + "-01"
+    if re.match(r"^\d{4}$", d):
+        return d + "-01-01"
+    return None
 
 def parse_events(raw):
     """Tolerant JSON extraction from a model reply; returns list of clean events."""
@@ -53,11 +67,9 @@ def parse_events(raw):
     out = []
     for e in data.get("events", []):
         ev = (e.get("event") or "").strip()
-        date = e.get("date")
+        date = _norm_date(e.get("date"))
         if not ev or not date:
-            continue
-        if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(date)):
-            continue                       # require a full resolvable date
+            continue                       # need at least a year
         actors = [a.strip() for a in (e.get("actors") or []) if a and a.strip()]
         if not actors:                     # backfill actors by scanning the text
             actors = [p for p in PRINCIPALS if p.lower() in ev.lower()]
@@ -81,7 +93,8 @@ def call_model(text, tries=3):
 def already_have(cur, ev):
     """Dedup: skip if a very similar event description already exists."""
     key = re.sub(r"[^a-z0-9 ]", "", ev.lower())[:40]
-    n = cur.execute("SELECT count(*) FROM chronicle.events WHERE lower(description) LIKE %s",
+    n = cur.execute("SELECT count(*) FROM chronicle.events "
+                    "WHERE regexp_replace(lower(description),'[^a-z0-9 ]','','g') LIKE %s",
                     (f"%{key}%",)).fetchone()[0]
     return n > 0
 
@@ -91,7 +104,12 @@ def run(limit, source):
     if source == "email":
         rows = cur.execute("SELECT body FROM emails WHERE length(body) > 400 ORDER BY sent_at LIMIT %s", (limit,)).fetchall()
     else:
-        rows = cur.execute("SELECT text FROM doc_chunks WHERE length(text) > 400 LIMIT %s", (limit,)).fetchall()
+        rows = cur.execute("""SELECT text FROM doc_chunks
+            WHERE length(text) > 400 AND (text ILIKE '%%LJM%%' OR text ILIKE '%%Raptor%%'
+              OR text ILIKE '%%Fastow%%' OR text ILIKE '%%Chewco%%' OR text ILIKE '%%related part%%'
+              OR text ILIKE '%%restat%%' OR text ILIKE '%%special purpose%%'
+              OR text ILIKE '%%Skilling%%' OR text ILIKE '%%Watkins%%')
+            LIMIT %s""", (limit,)).fetchall()
     cur.execute("INSERT INTO chronicle.batches(seq,label) VALUES(99,'llm-extracted') "
                 "ON CONFLICT DO NOTHING")
     bid = cur.execute("SELECT batch_id FROM chronicle.batches WHERE label='llm-extracted' LIMIT 1").fetchone()[0]
