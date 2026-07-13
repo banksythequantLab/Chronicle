@@ -39,6 +39,15 @@ DOCUMENT:
 """
 
 
+NOISE = ("stock plan", "performance unit", "incentive plan", "employment agreement",
+         "split dollar", "split-dollar", "life insurance", "consulting services",
+         "loan agreement", "articles of amendment", "stock split")
+
+def is_boilerplate(ev):
+    """Exhibit-list / comp filings the model over-extracts -- not case events."""
+    e = ev.lower()
+    return any(k in e for k in NOISE)
+
 def _norm_date(d):
     """Accept YYYY-MM-DD, YYYY-MM, or YYYY; normalize to a full date."""
     if not d:
@@ -117,7 +126,7 @@ def run(limit, source):
     for i, (text,) in enumerate(rows):
         events = parse_events(call_model(text))
         for ev in events:
-            if already_have(cur, ev["event"]):
+            if is_boilerplate(ev["event"]) or already_have(cur, ev["event"]):
                 continue
             cur.execute("""INSERT INTO chronicle.events(batch_id,description,event_date,confidence,source,active)
                            VALUES(%s,%s,%s,0.7,%s,true) RETURNING event_id""",

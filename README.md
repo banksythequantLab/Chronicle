@@ -70,16 +70,25 @@ Built & verified: schema, the deterministic memory core (conflict detection +
 persisted resolution + convergence ablation 0.98 vs 0.42), and a live working
 timeline (17 documented events) that feeds the suite's unified case file.
 
-The **LLM event-extraction layer** (`src/extract_events.py`) is built and its
-parsing / boilerplate-filtering / actor-backfill logic is verified offline
-(`--run` reads real SEC/email chunks and calls local Qwen3-30B to grow the
-timeline). Its live run is **staged pending GPU** — the project's Qwen host was
-saturated at build time (a 4-token generation timed out at 48s), so per our
-no-fake-results rule the extractor ships verified but un-run:
+The **LLM event-extraction layer** (`src/extract_events.py`) has been **run
+against the live corpus**: local Qwen3-30B reads the real Enron SEC filings and
+extracts dated case events into `chronicle.events`. It recovered the LJM2 /
+Related-Party self-dealing timeline straight from the 10-K/proxy text — e.g.:
 
 ```
-py -3.11 src/extract_events.py --selftest        # logic check (no model) — PASS
-py -3.11 src/extract_events.py --run --limit 40  # real extraction (needs the GPU free)
+1999-12-31  Related Party acquired $371 million in assets from Enron
+2000-01-01  LJM2 acquired debt and equity securities from Enron
+2000-01-01  LJM2 acquired dark fiber from an Enron subsidiary
+2000-03-01  Put option giving Related Party right to sell Enron shares at $71.31
+2000-12-31  Fair value of put option resulted in a $36 million loss to Enron
+```
+
+Exhibit-list boilerplate (stock plans, employment agreements) is filtered out.
+Reproduce:
+
+```
+py -3.11 src/extract_events.py --selftest        # parsing logic check (no model)
+py -3.11 src/extract_events.py --run --limit 25  # live extraction from the corpus
 ```
 
 
